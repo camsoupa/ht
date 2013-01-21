@@ -1,0 +1,18 @@
+%html{:lang => "en"}
+  %head
+    %meta{:charset => "utf-8"}
+    %link{:href => "styles.css", :rel => "stylesheet"}    
+
+
+  %body
+    %div#nav-bar
+      %div#nav-link-wrapper  
+        %ol  
+          %li.inline 
+            %img(src="logo.png")
+            %div Quorum Cloud 
+          %li.inline 
+            %a(href="/upload") Upload  
+    #content= yield
+
+

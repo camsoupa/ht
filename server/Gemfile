@@ -1,0 +1,18 @@
+source :rubygems
+
+gem 'sinatra'
+gem 'json'
+gem 'data_mapper'
+gem 'dm-postgres-adapter'
+gem 'thin'
+gem 'bson_ext'
+gem 'bundler'
+gem 'rake'
+gem 'haml'
+gem 'regex'
+gem 'logger'
+
+group :test do
+  gem "rspec"
+  gem "rack-test"
+end

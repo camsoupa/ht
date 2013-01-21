@@ -1,0 +1,17 @@
+{
+   "name": { "last" : "1", "first":"1", "middle" : "M" } ,
+   "emails":[ "lfm@domain.com"
+   ],
+   "gender" : "m",
+   "phones":[ "(801)742-1704"
+   ],
+   "household_id" : 1,
+   "family_role" : "head",
+   "ward" : "my_ward",
+   "dob" : "1998-1-1",
+   "notes" : [ 								
+     { "text" : "a note" },
+					{ "text" : "b note" } 
+			],
+   "address" : { "street" : "2000 N", "city" : "orem", "state" : "UT", "zip" : "22222" }
+}
