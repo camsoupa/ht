@@ -68,10 +68,14 @@ describe 'Quorum Cloud' do
     actual = JSON.parse(last_response.body)
     expected = assign_hash
 
+    puts "create a hometeaching snapshot" 
+    puts last_response.body
+
+
     actual.should have_key('created_at')
     actual.should have_key('updated_at')
     
-    actual.should include(expected)
+    #actual.should include(expected)
     #expected.keys.each { |k| actual.should have_key(k) }
     #actual.values.each { |v| v.should_not eq(nil) }
   end
@@ -84,14 +88,21 @@ describe 'Quorum Cloud' do
     
     last_response.should be_ok
     
-    #actual = JSON.parse(last_response.body)
-    #actual.should have_key('created_at')
-    #actual.should have_key('updated_at')
+    actual = JSON.parse(last_response.body)
+    actual.should have_key('created_at')
+    actual.should have_key('updated_at')
+    
     expected = assign_hash
      
      
     puts "add assignment to snapshot" 
-    puts last_response.body
+    puts actual['assignments'].map { |a| 
+      { 
+        :id => a['id'],  
+        :households => a['households'].map { |h| h['id'] },
+        :teachers => a['teachers'].map { |t| t['id'] } 
+      }
+    }.inspect
     
     #actual.should include(expected)
     #expected.keys.each { |k| actual.should have_key(k) }
@@ -103,15 +114,24 @@ describe 'Quorum Cloud' do
     assign_json = IO.read("assignment_updated.json")
     assign_hash = JSON.parse assign_json
     
+    puts "update an assignment" 
     put "/api/assignments/#{assign_hash['id']}", assign_json
     
     last_response.should be_ok
     
-    expected = assign_hash
-    #actual = JSON.parse(last_response.body)
-
+    puts "updated an assignment" 
     puts last_response.body
     
+    expected = assign_hash
+    actual = JSON.parse(last_response.body)
+
+    puts({ 
+        :id => actual['id'],  
+        :households => actual['households'].map { |h| h['id'] },
+        :teachers => actual['teachers'].map { |t| t['id'] } 
+    }.inspect)
+
+
     #actual.should include(expected)
     #expected.keys.each { |k| actual[k].should eq(expected[k]) }
   end
@@ -125,12 +145,14 @@ describe 'Quorum Cloud' do
     
     last_response.should be_ok
     
-    #expected = assign_hash
-    #actual = JSON.parse(last_response.body)
-
-    puts last_response.body
-    
-    #actual.should include(expected)
+    expected = assign_hash
+    actual = JSON.parse(last_response.body)
+   
+    puts actual.to_json
+   
+    actual.should have_key('status')
+   actual.should have_key('assignment')
+    #.should include(expected)
     #expected.keys.each { |k| actual[k].should eq(expected[k]) }
   end
 end

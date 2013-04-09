@@ -1,8 +1,8 @@
 { 
-		"id" : 2,
+		"id" : 1,
 		"district" : 2,
-		"household_ids" : [1], 
-		"teacher_ids": [3,4], 
+  "households" : [ 1 ], 
+  "teachers": [ 3, 4 ], 
 		"notes": [ 
 				{ "text" : "c" },
 				{ "text" : "d" } 

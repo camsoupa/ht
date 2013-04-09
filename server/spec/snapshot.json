@@ -6,8 +6,14 @@
   "assignments": [ 
 				{ 
 						"district" : 1,
-						"household_ids" : [3,4], 
-						"teacher_ids": [1,2], 
+						"households" : [ 
+						  3,
+						  4 
+						], 
+						"teachers": [
+						  1, 
+						  2
+						], 
 						"notes": [ 
 								{ "text" : "a" },
 								{ "text" : "b" } 

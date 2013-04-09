@@ -4,8 +4,7 @@ require 'sinatra'
 require 'json'
 require 'haml'
 require 'regex'
-require 'logger'
-
+require 'sinatra/logger'
 
 #add the directory of this file to Ruby's load paths array
 $LOAD_PATH.unshift('.')
@@ -124,8 +123,8 @@ post '/api/snapshots/:id/assigments' do
 
   if snapshot = Snapshot.get(params[:id])
     snapshot.assignments.create({
-							:households => Household.all(:id => post['household_ids']),
-							:teachers   => Person.all(:id => post['teacher_ids']),
+							:households => Household.all(:id => post['households']),
+							:teachers   => Person.all(:id => post['teachers']),
 							:district   => post['district'],
 							:notes      => post['notes'].map { |note| AssignmentNote.create(note) }
 				})
@@ -139,39 +138,49 @@ delete '/api/assignments/:id' do
   request.body.rewind
   post = JSON.parse request.body.read  
 
-  if assignment = Assignment.get(params[:id])
+  assignment = Assignment.get(params[:id])
+  
+  unless assignment.nil? 
     #assignment.group.assignments.delete_if { |assign| assign.id == assignment.id }
     #assignment.group.assignments.save
-    assignment.destroy
-    
-    return { :assignment => assignment, :status => :deleted }.to_json
+    if assignment.destroy
+      return { :assignment => assignment, :status => :deleted }.to_json
+    else
+      return { :assignment => assignment, :status => :not_deleted }.to_json
+    end
   end
 end
 
-put '/api/assigments/:id' do
+put '/api/assignments/:id' do
   content_type :json 
 
   request.body.rewind
   post = JSON.parse request.body.read 
 
-  if assignment = Assignment.get(params[:id])
-  
-    new_teacher_ids = post['teacher_ids'] - assignment.teachers.map { |teacher| teacher.id }
+  puts "updating assignment"
+
+  assignment = Assignment.get(params[:id])
+
+  unless assignment.nil?
+
+    new_teacher_ids = post['teachers'] - assignment.teachers.map { |teacher| teacher.id }
     new_teachers    = Person.all(:id => new_teacher_ids) 
-    assignment.teachers.keep_if { |teacher| post['teacher_ids'].include? teacher.id }
+    assignment.teachers.keep_if { |teacher| post['teachers'].include? teacher.id }
     assignment.teachers.save
-    assignment.teachers << new_teachers
-    #assignment.teachers.save  
+    assignment.teachers.concat new_teachers
+    assignment.teachers.save  
       
-    new_house_ids = post['household_ids'] - assignment.households.map { |house| house.id }  
+    new_house_ids = post['households'] - assignment.households.map { |house| house.id }  
     new_houses    = Household.all(:id => new_house_ids)
-    assignment.households.keep_if { |house| post['household_ids'].include? house.id }
+    assignment.households.keep_if { |house| post['households'].include? house.id }
     assignment.households.save
-    assignment.households << new_houses
-    #assignment.households.save
+    assignment.households.concat new_houses
+    assignment.households.save
     
-    assignment.to_json
+    return assignment.to_json
   end
+  
+  { :error => "failed to find assignment" }.to_json
 end
 
 
@@ -185,24 +194,18 @@ post '/api/snapshots' do
     :yr          => post['yr'],
     :mo          => post['mo'],
     :tag         => post['tag'],
-    :state       => post['state'],
-    :assignments => post['assignments'].map { |assignment|
-																							Assignment.create({
-																									:households => Household.all(:id => assignment['household_ids']),
-																									:teachers   => Person.all(:id => assignment['teacher_ids']),
-																									:district   => assignment['district'],
-																									:notes      => assignment['notes'].map { |note| AssignmentNote.create(note) }
-																						})
-																				}
+    :state       => post['state']
   })
-
-  #teachee.visits << a
-  #teachee.save
   
-  #teacher.teacher_role.assignments << a
-  #teacher.teacher_role.save
- 
-  #a.to_json
+  post['assignments'].each { |assignment|
+					ht_snapshot.assignments.create({
+							:households => Household.all(:id => assignment['households']),
+							:teachers   => Person.all(:id => assignment['teachers']),
+							:district   => assignment['district'],
+							:notes      => assignment['notes']#.map { |note| AssignmentNote.create(note) }
+				})
+		}
+
   ht_snapshot.to_json
 end
 
@@ -211,26 +214,18 @@ get '/api/assignments/:yr/:mo' do
   { :assignments => Assignment.all({ :yr => params[:yr], :mo => params[:mo] }) }.to_json
 end
 
-get '/api/assignments/tag/:tag' do
+get '/api/tagged-assignments/:tag' do
   content_type :json
   { :assignments => Assignment.all(:tag => params[:tag]) }.to_json
 end
 
-put '/api/assignments/:id' do
-  
-end
-
-class Teachers
-  include DataMapper::Resource
-  property :id, DataMapper::Property::Serial
-end
 
 class Snapshot
   include DataMapper::Resource
   property :id, DataMapper::Property::Serial
   property :yr,  Integer
   property :mo,  Integer
-  property :tag, Integer
+  property :tag, String
   
   has n, :assignments
   
@@ -264,25 +259,13 @@ class Visit
   
   has n, :notes, :model => 'VisitNote', :constraint => :destroy
   
-  property :visited, Enum[ :unknown, :y, :n ], :default => :unknown
+  property :visited, Boolean, :allow_nil => true
   
   property :created_at, DateTime
   property :updated_at, DateTime
 end
 
-class TeacherAssignment
-  include DataMapper::Resource
-  property :id, DataMapper::Property::Serial
-  belongs_to :teacher, 'Person', :constraint => :set_nil
-  belongs_to :assignment, 'Assignment', :constraint => :set_nil
-end
 
-class HouseholdAssignment
-  include DataMapper::Resource
-  property :id, DataMapper::Property::Serial
-  belongs_to :household, 'Household', :constraint => :set_nil
-  belongs_to :assignment, 'Assignment', :constraint => :set_nil
-end
 
 class Phone
   include DataMapper::Resource
@@ -396,6 +379,8 @@ class VisitNote < Note
   belongs_to :visit, :required => false
 end
 
+
+
 class Assignment
   include DataMapper::Resource
 
@@ -404,13 +389,10 @@ class Assignment
   belongs_to :snapshot
 
   property :district,  Integer
-  property :state, Enum[ :planned, :new, :assigned ], :default => :planned  
-  
-  has n, :teacher_assignments, :child_key => [ :assignment_id ], :constraint => :destroy
-  has n, :teachers, 'Person', :through => :teacher_assignments, :via => :teacher
-  
-  has n, :household_assignments, :child_key => [ :assignment_id ], :constraint => :destroy
-  has n, :households, :through => :household_assignments, :via => :assignment
+  property :state, Enum[ :planned, :assigned ], :default => :planned  
+
+  has n, :teachers, 'Person', :through => Resource
+  has n, :households, :through => Resource
   
   has n, :notes, 'AssignmentNote'
 
@@ -420,14 +402,14 @@ class Assignment
   # this method is called on a single instance
   def to_json(options={})
     options[:methods] ||= []
-    [ :notes ].each{ |method| options[:methods] << method } 
+    [ :notes, :teachers, :households ].each{ |method| options[:methods] << method } 
     super(options)
   end
 
   # this method is called for each instance in an Array to avoid circular references.
   def as_json(options={})
     options[:methods] ||= []
-    [ :notes ].each{ |method| options[:methods] << method } 
+    [ :notes, :teachers, :households ].each{ |method| options[:methods] << method } 
     super(options)
   end
 end
@@ -439,8 +421,8 @@ class Person
   
   belongs_to :household
   
-  has 1, :name, :model => 'FullName', :constraint => :destroy
-  has 1, :address, :model => 'PersonalAddress'#, :constraint => :destroy
+  has 1, :name, :model => 'FullName'
+  has 1, :address, :model => 'PersonalAddress'
   
   property :gender, Enum[:f, :m] 
   property :dob, Date
@@ -448,16 +430,15 @@ class Person
   
   has n, :phones, :constraint => :destroy
   has n, :emails, :constraint => :destroy
-  has n, :notes, :model => 'PersonNote', :constraint => :destroy
+  has n, :notes, :model => 'PersonNote'
 
   property :ward, String # could be living outside of ward  
   property :elder, Boolean, :default => false
   
   # Hometeacher
   property :assignable, Boolean, :default => true
-  
-  has n,   :teacher_assignments, :child_key => [:teacher_id]
-  has n,   :assignments, :through => :teacher_assignments, :via => :assignment
+
+  has n,   :assignments, :through => Resource
   
   has n,   :visits, :child_key => [:teacher_id]
 
@@ -507,16 +488,15 @@ class Household
   property :name,   String, :required => true
   property :phone,  String
   property :ward,   String #if they moved
-  has 1,  :address, :model => 'HomeAddress', :constraint => :destroy
+  has 1,  :address, :model => 'HomeAddress'
     
-  has n, :people, :model => 'Person', :child_key=>[:household_id], :constraint => :set_nil
+  has n, :people, :model => 'Person', :child_key=>[:household_id]
   
-  has n, :notes, :model => 'HouseholdNote', :constraint => :destroy
+  has n, :notes, :model => 'HouseholdNote'
   
   has n, :visits, :child_key=>[:household_id]
-  
-  has n, :household_assignments, :child_key => [ :household_id ], :constraint => :set_nil
-  has n, :assignments, :through => :household_assignments, :via => :assignment
+
+  has n, :assignments, :through => Resource
 
   property :created_at, DateTime
   property :updated_at, DateTime 
