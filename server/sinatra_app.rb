@@ -44,10 +44,10 @@ end
 post 'api/households/directory-csv' do
   csv_households = request.body.read
   csv = CSV.parse(csv_households, :headers => true)
-		csv.each do |row|
-				row = row.to_hash.with_indifferent_access
-				Moulding.create!(row.to_hash.symbolize_keys)
-		end
+    csv.each do |row|
+        row = row.to_hash.with_indifferent_access
+        Moulding.create!(row.to_hash.symbolize_keys)
+    end
   
 end
 
@@ -59,17 +59,17 @@ post '/api/people' do
   request.body.rewind
   post = JSON.parse request.body.read
   p = Person.create({
-        :name     => FullName.create(post['name']),
-        :address  => PersonalAddress.create(post['address']),
-        :phones   => post['phones'].map { |num| Phone.create(num) },
-        :emails   => post['emails'].map { |addr| Email.create(addr) },
-        :notes    => (post['notes'] || []).map { |note| PersonNote.create(note) },
-        :gender   => post['gender'],
-        :ward     => post['ward'],
-        :dob      => post['dob'],
-        :family_role     => post['family_role'],
-        :household => Household.get(post['household_id'])
-      })   
+    :name     => FullName.create(post['name']),
+    :address  => PersonalAddress.create(post['address']),
+    :phones   => post['phones'].map { |num| Phone.create(num) },
+    :emails   => post['emails'].map { |addr| Email.create(addr) },
+    :notes    => (post['notes'] || []).map { |note| PersonNote.create(note) },
+    :gender   => post['gender'],
+    :ward     => post['ward'],
+    :dob      => post['dob'],
+    :family_role     => post['family_role'],
+    :household => Household.get(post['household_id'])
+  })   
        
   #h.people << p
   #h.save    
@@ -123,11 +123,11 @@ post '/api/snapshots/:id/assigments' do
 
   if snapshot = Snapshot.get(params[:id])
     snapshot.assignments.create({
-							:households => Household.all(:id => post['households']),
-							:teachers   => Person.all(:id => post['teachers']),
-							:district   => post['district'],
-							:notes      => post['notes'].map { |note| AssignmentNote.create(note) }
-				})
+      :households => Household.all(:id => post['households']),
+      :teachers   => Person.all(:id => post['teachers']),
+      :district   => post['district'],
+      :notes      => post['notes'].map { |note| AssignmentNote.create(note) }
+    })
     return snapshot.to_json
   end
 end
@@ -198,13 +198,13 @@ post '/api/snapshots' do
   })
   
   post['assignments'].each { |assignment|
-					ht_snapshot.assignments.create({
-							:households => Household.all(:id => assignment['households']),
-							:teachers   => Person.all(:id => assignment['teachers']),
-							:district   => assignment['district'],
-							:notes      => assignment['notes']#.map { |note| AssignmentNote.create(note) }
-				})
-		}
+    ht_snapshot.assignments.create({
+      :households => Household.all(:id => assignment['households']),
+      :teachers   => Person.all(:id => assignment['teachers']),
+      :district   => assignment['district'],
+      :notes      => assignment['notes']#.map { |note| AssignmentNote.create(note) }
+    })
+  }
 
   ht_snapshot.to_json
 end
