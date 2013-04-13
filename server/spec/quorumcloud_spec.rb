@@ -20,40 +20,40 @@ describe 'Quorum Cloud' do
   it "accepts new households" do
     (1..4).each{ |num|
       house_json = IO.read("household#{num}.json")
-				  house_hash = JSON.parse house_json
-				  
-				  post '/api/households', house_json
-				  
-				  last_response.should be_ok
-				  
-				  actual = JSON.parse(last_response.body)
-				  expected = house_hash
-				  
-				  actual.should have_key('created_at')
-				  actual.should have_key('updated_at')
-				  expected.keys.each { |k| actual.should have_key(k) }
-				  actual.values.each { |v| v.should_not eq(nil) }
+          house_hash = JSON.parse house_json
+          
+          post '/api/households', house_json
+          
+          last_response.should be_ok
+          
+          actual = JSON.parse(last_response.body)
+          expected = house_hash
+          
+          actual.should have_key('created_at')
+          actual.should have_key('updated_at')
+          expected.keys.each { |k| actual.should have_key(k) }
+          actual.values.each { |v| v.should_not eq(nil) }
     }
   end
   
   it "accepts new people" do
     (1..4).each{ |num|
-				  person_json = IO.read("person#{num}.json")
-				  person_hash = JSON.parse person_json
-				  
-				  post '/api/people', person_json
-				  puts last_response.body
-				  
-				  last_response.should be_ok
-				  
-				  actual = JSON.parse(last_response.body)
-				  expected = person_hash
+          person_json = IO.read("person#{num}.json")
+          person_hash = JSON.parse person_json
+          
+          post '/api/people', person_json
+          puts last_response.body
+          
+          last_response.should be_ok
+          
+          actual = JSON.parse(last_response.body)
+          expected = person_hash
 
-				  actual.should have_key('created_at')
-				  actual.should have_key('updated_at')
-				  expected.keys.each { |k| actual.should have_key(k) }
-				  actual.values.each { |v| v.should_not eq(nil) }
-				  #actual.should include(expected)
+          actual.should have_key('created_at')
+          actual.should have_key('updated_at')
+          expected.keys.each { |k| actual.should have_key(k) }
+          actual.values.each { |v| v.should_not eq(nil) }
+          #actual.should include(expected)
     }
   end
   
